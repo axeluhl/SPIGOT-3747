@@ -1,0 +1,31 @@
+From 52cc93a964c2c1c6dc660be099cc399b43da73b4 Mon Sep 17 00:00:00 2001
+From: donaldduck70 <spigot@homemp3.dyndns.org>
+Date: Tue, 9 Jan 2018 23:57:54 +0100
+Subject: [PATCH] removed World.isChunkSticky(Chunk) because Chunk.isSticky()
+ is as convenient
+
+
+diff --git a/src/main/java/org/bukkit/World.java b/src/main/java/org/bukkit/World.java
+index 0165d4f9..ca692673 100644
+--- a/src/main/java/org/bukkit/World.java
++++ b/src/main/java/org/bukkit/World.java
+@@ -151,16 +151,6 @@ public interface World extends PluginMessageRecipient, Metadatable {
+      */
+     public Chunk[] getLoadedChunks();
+ 
+-    /**
+-     * Checks if the specified {@link Chunk} is {@link Chunk#isSticky() sticky} in the
+-     * player chunk map and hence will, e.g., continue to receive random block ticks
+-     * when no player is near.
+-     *
+-     * @param chunk The chunk to check
+-     * @return true if the chunk is sticky, otherwise false
+-     */
+-    public boolean isChunkSticky(Chunk chunk);
+-
+     /**
+      * Gets an array of all {@link Chunk#isSticky() sticky} {@link Chunk}s
+      *
+-- 
+2.15.1
+

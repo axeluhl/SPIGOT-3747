@@ -1,0 +1,23 @@
+From 2efc31d1915ea81bd9ca213aaadb862ed7e2acfa Mon Sep 17 00:00:00 2001
+From: donaldduck70 <spigot@homemp3.dyndns.org>
+Date: Tue, 9 Jan 2018 20:59:42 +0100
+Subject: [PATCH] SPIGOT-3747: adjusted comment for decompile problem into a
+ "PAIL" comment
+
+
+diff --git a/nms-patches/ChatBaseComponent.patch b/nms-patches/ChatBaseComponent.patch
+index ef861957..85297efb 100644
+--- a/nms-patches/ChatBaseComponent.patch
++++ b/nms-patches/ChatBaseComponent.patch
+@@ -5,7 +5,7 @@
+  
+      public Iterator<IChatBaseComponent> iterator() {
+ -        return Iterators.concat(Iterators.forArray(new ChatBaseComponent[] { this}), a((Iterable) this.a));
+-+        return Iterators.concat(Iterators.forArray(new ChatBaseComponent[] { this}), a((Iterable<IChatBaseComponent>) this.a)); // CraftBukkit - fix decompile error
+++        return Iterators.concat(Iterators.forArray(new ChatBaseComponent[] { this}), a((Iterable<IChatBaseComponent>) this.a)); // PAIL Fix decompile error
+      }
+  
+      public final String toPlainText() {
+-- 
+2.15.1
+

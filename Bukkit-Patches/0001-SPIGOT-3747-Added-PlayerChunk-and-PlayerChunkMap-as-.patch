@@ -1,0 +1,71 @@
+From 6e0317570a233b89430f1aa37546e1fe4383b4fd Mon Sep 17 00:00:00 2001
+From: donaldduck70 <spigot@homemp3.dyndns.org>
+Date: Tue, 9 Jan 2018 00:46:12 +0100
+Subject: [PATCH] SPIGOT-3747: Added PlayerChunk and PlayerChunkMap as
+ wrappers, expose getPlayerChunkMap on World
+
+
+diff --git a/src/main/java/org/bukkit/PlayerChunk.java b/src/main/java/org/bukkit/PlayerChunk.java
+new file mode 100755
+index 00000000..f326119f
+--- /dev/null
++++ b/src/main/java/org/bukkit/PlayerChunk.java
+@@ -0,0 +1,18 @@
++package org.bukkit;
++
++public interface PlayerChunk {
++
++    /**
++     * @return {@code true} whether this player chunk will remain loaded even if it has no player associated anymore
++     */
++    boolean isSticky();
++
++    /**
++     * Forces this player chunk to remain in its {@link #playerChunkMap} even if it contains no player entities anymore,
++     * or releases the chunk if {@code sticky} is {@code false}.
++     */
++    void setSticky(boolean sticky);
++
++    Chunk getChunk();
++
++}
+diff --git a/src/main/java/org/bukkit/PlayerChunkMap.java b/src/main/java/org/bukkit/PlayerChunkMap.java
+new file mode 100755
+index 00000000..121679f4
+--- /dev/null
++++ b/src/main/java/org/bukkit/PlayerChunkMap.java
+@@ -0,0 +1,13 @@
++package org.bukkit;
++
++public interface PlayerChunkMap {
++
++    PlayerChunk getPlayerChunk(int x, int z);
++
++    /**
++     * Force-loads the chunk at the chunk coordinates specified and marks the resulting {@link PlayerChunk} with
++     * {@link PlayerChunk#setSticky(boolean)}. Useful for plugins that would like to force chunk ticks even in
++     * case they are not loaded yet, e.g., during plugin start-up.
++     */
++    void keepPlayerChunkTicking(int x, int z);
++}
+diff --git a/src/main/java/org/bukkit/World.java b/src/main/java/org/bukkit/World.java
+index c8344c6d..1373e0af 100644
+--- a/src/main/java/org/bukkit/World.java
++++ b/src/main/java/org/bukkit/World.java
+@@ -1470,6 +1470,13 @@ public interface World extends PluginMessageRecipient, Metadatable {
+      */
+     public <T> void spawnParticle(Particle particle, double x, double y, double z, int count, double offsetX, double offsetY, double offsetZ, double extra, T data);
+ 
++    /**
++     * Gets the player chunk map from this world
++     * 
++     * @return the player chunk map from this world
++     */
++    PlayerChunkMap getPlayerChunkMap();
++
+ 
+     /**
+      * Represents various map environment types that a world may be
+-- 
+2.15.1
+

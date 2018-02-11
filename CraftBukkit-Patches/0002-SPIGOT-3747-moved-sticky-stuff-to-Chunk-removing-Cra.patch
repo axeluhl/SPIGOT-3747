@@ -1,0 +1,604 @@
+From e65a157d7037a07abe83ee27af43a4fa3c0105ba Mon Sep 17 00:00:00 2001
+From: donaldduck70 <spigot@homemp3.dyndns.org>
+Date: Tue, 9 Jan 2018 16:19:04 +0100
+Subject: [PATCH] SPIGOT-3747: moved sticky stuff to Chunk, removing
+ CraftPlayerChunk[Map]
+
+
+diff --git a/nms-patches/ChatBaseComponent.patch b/nms-patches/ChatBaseComponent.patch
+index 255e41df..ef861957 100644
+--- a/nms-patches/ChatBaseComponent.patch
++++ b/nms-patches/ChatBaseComponent.patch
+@@ -5,7 +5,7 @@
+  
+      public Iterator<IChatBaseComponent> iterator() {
+ -        return Iterators.concat(Iterators.forArray(new ChatBaseComponent[] { this}), a((Iterable) this.a));
+-+        return Iterators.concat(Iterators.forArray(new ChatBaseComponent[] { this}), a((Iterable<IChatBaseComponent>) this.a));
+++        return Iterators.concat(Iterators.forArray(new ChatBaseComponent[] { this}), a((Iterable<IChatBaseComponent>) this.a)); // CraftBukkit - fix decompile error
+      }
+  
+      public final String toPlainText() {
+diff --git a/nms-patches/Chunk.patch b/nms-patches/Chunk.patch
+index 92d24e2d..bc168968 100644
+--- a/nms-patches/Chunk.patch
++++ b/nms-patches/Chunk.patch
+@@ -10,11 +10,12 @@
+  public class Chunk {
+  
+      private static final Logger e = LogManager.getLogger();
+-@@ -42,6 +45,35 @@
++@@ -42,6 +45,36 @@
+      private final ConcurrentLinkedQueue<BlockPosition> y;
+      public boolean d;
+  
+ +    // CraftBukkit start - Neighbor loaded cache for chunk lighting and entity ticking
+++    private boolean stickyInPlayerChunkMap;
+ +    private int neighbors = 0x1 << 12;
+ +    public long chunkKey;
+ +
+@@ -46,7 +47,7 @@
+      public Chunk(World world, int i, int j) {
+          this.sections = new ChunkSection[16];
+          this.g = new byte[256];
+-@@ -62,8 +94,15 @@
++@@ -62,8 +95,15 @@
+  
+          Arrays.fill(this.h, -999);
+          Arrays.fill(this.g, (byte) -1);
+@@ -62,7 +63,24 @@
+      public Chunk(World world, ChunkSnapshot chunksnapshot, int i, int j) {
+          this(world, i, j);
+          boolean flag = true;
+-@@ -467,7 +506,8 @@
++@@ -89,6 +129,16 @@
++ 
++     }
++ 
+++    // CraftBukkit start - allow chunk to remain sticky in PlayerChunkMap
+++    public boolean isSticky() {
+++        return stickyInPlayerChunkMap;
+++    }
+++    
+++    public void setSticky(boolean sticky) {
+++        stickyInPlayerChunkMap = sticky;
+++    }
+++    // CraftBukkit end
+++
++     public boolean a(int i, int j) {
++         return i == this.locX && j == this.locZ;
++     }
++@@ -467,7 +517,8 @@
+                      }
+                  }
+  
+@@ -72,7 +90,7 @@
+                      block.onPlace(this.world, blockposition, iblockdata);
+                  }
+  
+-@@ -604,7 +644,15 @@
++@@ -604,7 +655,15 @@
+  
+      @Nullable
+      public TileEntity a(BlockPosition blockposition, Chunk.EnumTileEntityState chunk_enumtileentitystate) {
+@@ -89,7 +107,7 @@
+  
+          if (tileentity == null) {
+              if (chunk_enumtileentitystate == Chunk.EnumTileEntityState.IMMEDIATE) {
+-@@ -639,6 +687,13 @@
++@@ -639,6 +698,13 @@
+  
+              tileentity.A();
+              this.tileEntities.put(blockposition, tileentity);
+@@ -103,7 +121,7 @@
+          }
+      }
+  
+-@@ -681,9 +736,21 @@
++@@ -681,9 +747,21 @@
+          int i = aentityslice.length;
+  
+          for (int j = 0; j < i; ++j) {
+@@ -113,21 +131,21 @@
+ +            java.util.Iterator<Entity> iter = newList.iterator();
+ +            while (iter.hasNext()) {
+ +                Entity entity = iter.next();
+-+
++ 
++-            this.world.c((Collection) entityslice);
+ +                // Do not pass along players, as doing so can get them stuck outside of time.
+ +                // (which for example disables inventory icon updates and prevents block breaking)
+ +                if (entity instanceof EntityPlayer) {
+ +                    iter.remove();
+ +                }
+ +            }
+- 
+--            this.world.c((Collection) entityslice);
+++
+ +            this.world.c(newList);
+ +            // CraftBukkit end
+          }
+  
+      }
+-@@ -745,8 +812,8 @@
++@@ -745,8 +823,8 @@
+              while (iterator.hasNext()) {
+                  Entity entity = (Entity) iterator.next();
+  
+@@ -138,7 +156,7 @@
+                  }
+              }
+          }
+-@@ -773,7 +840,34 @@
++@@ -773,7 +851,34 @@
+          return false;
+      }
+  
+@@ -174,7 +192,7 @@
+          Chunk chunk = ichunkprovider.getLoadedChunkAt(this.locX, this.locZ - 1);
+          Chunk chunk1 = ichunkprovider.getLoadedChunkAt(this.locX + 1, this.locZ);
+          Chunk chunk2 = ichunkprovider.getLoadedChunkAt(this.locX, this.locZ + 1);
+-@@ -809,6 +903,29 @@
++@@ -809,6 +914,29 @@
+          } else {
+              this.o();
+              chunkgenerator.recreateStructures(this.locX, this.locZ);
+diff --git a/nms-patches/PlayerChunk.patch b/nms-patches/PlayerChunk.patch
+index b92117bc..8833d828 100644
+--- a/nms-patches/PlayerChunk.patch
++++ b/nms-patches/PlayerChunk.patch
+@@ -1,6 +1,6 @@
+ --- a/net/minecraft/server/PlayerChunk.java
+ +++ b/net/minecraft/server/PlayerChunk.java
+-@@ -8,32 +8,55 @@
++@@ -8,32 +8,48 @@
+  import javax.annotation.Nullable;
+  import org.apache.logging.log4j.LogManager;
+  import org.apache.logging.log4j.Logger;
+@@ -32,13 +32,6 @@
+ +            PlayerChunk.this.chunk = PlayerChunk.this.playerChunkMap.getWorld().getChunkProviderServer().getOrLoadChunkAt(location.x, location.z);
+ +        }
+ +    };
+-+
+-+    /**
+-+     * Keeps the player chunk in the PlayerChunkMap and hence ticking even if it contains no players anymore
+-+     * 
+-+     * @see #setSticky(boolean)
+-+     */
+-+    private boolean stickyInPlayerChunkMap;
+ +    // CraftBukkit end
+ +
+      public PlayerChunk(PlayerChunkMap playerchunkmap, int i, int j) {
+@@ -60,7 +53,7 @@
+          if (this.c.contains(entityplayer)) {
+              PlayerChunk.a.debug("Failed to add player. {} already is in chunk {}, {}", entityplayer, Integer.valueOf(this.location.x), Integer.valueOf(this.location.z));
+          } else {
+-@@ -42,36 +65,85 @@
++@@ -42,36 +58,61 @@
+              }
+  
+              this.c.add(entityplayer);
+@@ -82,7 +75,7 @@
+ +            if (!this.done) {
+ +                this.c.remove(entityplayer);
+ +
+-+                if (this.c.isEmpty() && !isSticky()) { // Spigot: keep if forced, to cause chunk ticks
+++                if (this.c.isEmpty() && !chunk.isSticky()) { // CraftBukkit: keep if forced, to cause chunk ticks
+ +                    ChunkIOExecutor.dropQueuedChunkLoad(this.playerChunkMap.getWorld(), this.location.x, this.location.z, this.loadedRunnable);
+ +                    this.playerChunkMap.b(this);
+ +                }
+@@ -96,7 +89,7 @@
+  
+              this.c.remove(entityplayer);
+ -            if (this.c.isEmpty()) {
+-+            if (this.c.isEmpty() && !isSticky()) { // CraftBukkit: keep if forced, to cause chunk ticks
+++            if (this.c.isEmpty() && !chunk.isSticky()) { // CraftBukkit: keep if forced, to cause chunk ticks
+                  this.playerChunkMap.b(this);
+              }
+  
+@@ -104,30 +97,6 @@
+      }
+  
+ +    
+-+    // CraftBukkit start - release this PlayerChunk if already empty
+-+    /**
+-+     * @return {@code true} whether this player chunk will remain loaded even if it has no player associated anymore
+-+     */
+-+    public boolean isSticky() {
+-+        return stickyInPlayerChunkMap;
+-+    }
+-+    
+-+    /**
+-+     * Forces this player chunk to remain in its {@link #playerChunkMap} even if it contains
+-+     * no player entities anymore in case {@code sticky} is {@code true}; if {@code sticky} is
+-+     * {@code false} and no player is seeing this chunk, the chunk is removed from the
+-+     * {@link org.bukkit.PlayerChunkMap}.
+-+     */
+-+    public void setSticky(boolean sticky) {
+-+        stickyInPlayerChunkMap = sticky;
+-+        if (!sticky) {
+-+            if (this.c.isEmpty()) {
+-+                this.playerChunkMap.b(this);
+-+            }
+-+        }
+-+    }
+-+    // CraftBukkit end
+-+
+      public boolean a(boolean flag) {
+          if (this.chunk != null) {
+              return true;
+diff --git a/nms-patches/PlayerChunkMap.patch b/nms-patches/PlayerChunkMap.patch
+index cc360e67..4e44bf1f 100644
+--- a/nms-patches/PlayerChunkMap.patch
++++ b/nms-patches/PlayerChunkMap.patch
+@@ -24,7 +24,7 @@
+                          }
+  
+ -                        if (!playerchunk.a(128.0D, PlayerChunkMap.a)) {
+-+                        if (!playerchunk.isSticky() && !playerchunk.a(128.0D, PlayerChunkMap.a)) { // Spigot: always return force-ticking chunks
+++                        if (!playerchunk.chunk.isSticky() && !playerchunk.a(128.0D, PlayerChunkMap.a)) { // CraftBukkit: always return force-ticking chunks
+                              continue;
+                          }
+  
+@@ -61,7 +61,7 @@
+ +     */
+ +    public PlayerChunk keepPlayerChunkTicking(int x, int z) {
+ +        final PlayerChunk result = c(x, z);
+-+        result.setSticky(true);
+++        result.chunk.setSticky(true);
+ +        return result;
+ +    }
+ +    // CraftBukkit end
+diff --git a/nms-patches/WorldServer.patch b/nms-patches/WorldServer.patch
+index 1d67d706..bd245e7e 100644
+--- a/nms-patches/WorldServer.patch
++++ b/nms-patches/WorldServer.patch
+@@ -321,7 +321,7 @@
+                  chunk.n();
+                  this.methodProfiler.c("tickChunk");
+                  chunk.b(false);
+-+                if ( !manager.getChunk(chunk.locX, chunk.locZ).isSticky()) continue; // CraftBukkit
+++                if ( !manager.getChunk(chunk.locX, chunk.locZ).chunk.isSticky()) continue; // CraftBukkit
+                  this.methodProfiler.c("thunder");
+                  int l;
+                  BlockPosition blockposition;
+diff --git a/src/main/java/org/bukkit/craftbukkit/AbstractWrapper.java b/src/main/java/org/bukkit/craftbukkit/AbstractWrapper.java
+deleted file mode 100644
+index 7bd82d10..00000000
+--- a/src/main/java/org/bukkit/craftbukkit/AbstractWrapper.java
++++ /dev/null
+@@ -1,45 +0,0 @@
+-package org.bukkit.craftbukkit;
+-
+-import java.lang.ref.WeakReference;
+-
+-import net.minecraft.server.WorldServer;
+-
+-/**
+- * Wraps a Minecraft object of type {@code T}, keeping a weak reference to it,
+- * and a strong reference to the {@link WorldServer}. Access to the referent
+- * happens in the {@link #getHandle} method where the object needs to be
+- * re-resolved starting from the {@link WorldServer} if the weak reference was
+- * had its referent collected in the meantime.
+- * <p>
+- * 
+- * Implementing subclasses have to use their constructor to store context data
+- * such as, e.g., the {@link WorldServer} that provides the context to
+- * {@link #retrieve} the {@code t} object equivalent again at a later point
+- * after the {@code t} object itself was garbage collected.
+- * <p>
+- * 
+- * @param <T>
+- */
+-public abstract class AbstractWrapper<T> {
+-	private WeakReference<T> handle;
+-	
+-	protected AbstractWrapper(T t) {
+-		handle = new WeakReference<>(t);
+-	}
+-
+-	/**
+-	 * Retrieves an object equivalent to the original {@code T} object passed to the constructor, based
+-	 * on the context data remembered during the call to {@link #rememberQueryData(Object)} that the
+-	 * constructor performs.
+-	 */
+-	protected abstract T retrieve();
+-	
+-	protected T getHandle() {
+-		T result = handle.get();
+-		if (result == null) {
+-			result = retrieve();
+-			handle = new WeakReference<>(result);
+-		}
+-		return result;
+-	}
+-}
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftChunk.java b/src/main/java/org/bukkit/craftbukkit/CraftChunk.java
+index 0cc838cc..406560ac 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftChunk.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftChunk.java
+@@ -130,6 +130,25 @@ public class CraftChunk implements Chunk {
+         return getWorld().unloadChunk(getX(), getZ());
+     }
+ 
++    @Override
++    public void setSticky(boolean sticky) {
++        final PlayerChunkMap playerChunkMap = worldServer.getPlayerChunkMap();
++        if (sticky) {
++            playerChunkMap.keepPlayerChunkTicking(getX(), getZ());
++        } else {
++            getHandle().setSticky(false);
++            final PlayerChunk playerChunk = playerChunkMap.getChunk(getX(), getZ());
++            if (playerChunk.c.isEmpty()) {
++                playerChunkMap.b(playerChunk);
++            }
++        }
++    }
++
++    @Override
++    public boolean isSticky() {
++        return getHandle().isSticky();
++    }
++
+     @Override
+     public boolean isSlimeChunk() {
+         // 987234911L is deterimined in EntitySlime when seeing if a slime can spawn in a chunk
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftPlayerChunk.java b/src/main/java/org/bukkit/craftbukkit/CraftPlayerChunk.java
+deleted file mode 100755
+index f263c25d..00000000
+--- a/src/main/java/org/bukkit/craftbukkit/CraftPlayerChunk.java
++++ /dev/null
+@@ -1,47 +0,0 @@
+-package org.bukkit.craftbukkit;
+-
+-import org.bukkit.Chunk;
+-import org.bukkit.PlayerChunk;
+-
+-import net.minecraft.server.PlayerChunkMap;
+-import net.minecraft.server.WorldServer;
+-
+-public class CraftPlayerChunk extends AbstractWrapper<net.minecraft.server.PlayerChunk> implements PlayerChunk {
+-    private final WorldServer world;
+-    private final int x;
+-    private final int z;
+-
+-    public CraftPlayerChunk(net.minecraft.server.PlayerChunk playerChunk) {
+-        super(playerChunk);
+-        world = playerChunk.chunk.world.worldData.world;
+-        this.x = playerChunk.chunk.locX;
+-        this.z = playerChunk.chunk.locZ;
+-    }
+-
+-    @Override
+-    protected net.minecraft.server.PlayerChunk retrieve() {
+-        return world.getPlayerChunkMap().getChunk(x, z);
+-    }
+-
+-    @Override
+-    public Chunk getChunk() {
+-        return new CraftChunk(getHandle().chunk);
+-    }
+-
+-    /**
+-     * @return {@code true} whether this player chunk will remain loaded even if it has no player associated anymore
+-     */
+-    @Override
+-    public boolean isSticky() {
+-        return getHandle().isSticky();
+-    }
+-
+-    /**
+-     * Forces this player chunk to remain in its {@link #playerChunkMap} even if it contains no player entities anymore,
+-     * or releases the chunk if {@code sticky} is {@code false}.
+-     */
+-    @Override
+-    public void setSticky(boolean sticky) {
+-        getHandle().setSticky(sticky);
+-    }
+-}
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftPlayerChunkMap.java b/src/main/java/org/bukkit/craftbukkit/CraftPlayerChunkMap.java
+deleted file mode 100644
+index 4c7730c4..00000000
+--- a/src/main/java/org/bukkit/craftbukkit/CraftPlayerChunkMap.java
++++ /dev/null
+@@ -1,31 +0,0 @@
+-package org.bukkit.craftbukkit;
+-
+-import org.bukkit.PlayerChunk;
+-import org.bukkit.PlayerChunkMap;
+-
+-import net.minecraft.server.WorldServer;
+-
+-public class CraftPlayerChunkMap extends AbstractWrapper<net.minecraft.server.PlayerChunkMap>
+-        implements PlayerChunkMap {
+-    private final WorldServer world;
+-
+-    public CraftPlayerChunkMap(net.minecraft.server.PlayerChunkMap playerChunkMap) {
+-        super(playerChunkMap);
+-        world = playerChunkMap.getWorld();
+-    }
+-
+-    @Override
+-    public PlayerChunk getPlayerChunk(int x, int z) {
+-        return new CraftPlayerChunk(getHandle().getChunk(x, z));
+-    }
+-
+-    @Override
+-    public void keepPlayerChunkTicking(int x, int z) {
+-        getHandle().keepPlayerChunkTicking(x, z);
+-    }
+-
+-    @Override
+-    protected net.minecraft.server.PlayerChunkMap retrieve() {
+-        return world.getPlayerChunkMap();
+-    }
+-}
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
+index 236bd733..8f6653f7 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
+@@ -1,16 +1,19 @@
+ package org.bukkit.craftbukkit;
+ 
++import com.google.common.base.Preconditions;
+ import java.io.File;
+ import java.util.ArrayList;
+ import java.util.Collection;
+ import java.util.Collections;
+ import java.util.HashSet;
+-import java.util.Iterator;
+ import java.util.List;
++import java.util.Iterator;
+ import java.util.Random;
+ import java.util.Set;
+ import java.util.UUID;
+ 
++import net.minecraft.server.*;
++
+ import org.apache.commons.lang.Validate;
+ import org.bukkit.BlockChangeDelegate;
+ import org.bukkit.Bukkit;
+@@ -20,7 +23,6 @@ import org.bukkit.Difficulty;
+ import org.bukkit.Effect;
+ import org.bukkit.Location;
+ import org.bukkit.Particle;
+-import org.bukkit.PlayerChunkMap;
+ import org.bukkit.Sound;
+ import org.bukkit.TreeType;
+ import org.bukkit.World;
+@@ -31,107 +33,14 @@ import org.bukkit.block.BlockFace;
+ import org.bukkit.block.BlockState;
+ import org.bukkit.craftbukkit.block.CraftBlock;
+ import org.bukkit.craftbukkit.block.CraftBlockState;
+-import org.bukkit.craftbukkit.entity.CraftItem;
+-import org.bukkit.craftbukkit.entity.CraftLightningStrike;
+-import org.bukkit.craftbukkit.entity.CraftPlayer;
++import org.bukkit.craftbukkit.entity.*;
+ import org.bukkit.craftbukkit.inventory.CraftItemStack;
+ import org.bukkit.craftbukkit.metadata.BlockMetadataStore;
+ import org.bukkit.craftbukkit.potion.CraftPotionUtil;
+ import org.bukkit.craftbukkit.util.CraftMagicNumbers;
+-import org.bukkit.entity.AbstractHorse;
+-import org.bukkit.entity.Ambient;
+-import org.bukkit.entity.AreaEffectCloud;
+-import org.bukkit.entity.ArmorStand;
+-import org.bukkit.entity.Arrow;
+-import org.bukkit.entity.Bat;
+-import org.bukkit.entity.Blaze;
+-import org.bukkit.entity.Boat;
+-import org.bukkit.entity.CaveSpider;
+-import org.bukkit.entity.ChestedHorse;
+-import org.bukkit.entity.Chicken;
+-import org.bukkit.entity.ComplexLivingEntity;
+-import org.bukkit.entity.Cow;
+-import org.bukkit.entity.Creeper;
+-import org.bukkit.entity.Donkey;
+-import org.bukkit.entity.DragonFireball;
+-import org.bukkit.entity.Egg;
+-import org.bukkit.entity.ElderGuardian;
+-import org.bukkit.entity.EnderCrystal;
+-import org.bukkit.entity.EnderDragon;
+-import org.bukkit.entity.EnderPearl;
+-import org.bukkit.entity.EnderSignal;
+-import org.bukkit.entity.Enderman;
+-import org.bukkit.entity.Endermite;
++import org.bukkit.craftbukkit.util.LongHash;
++import org.bukkit.entity.*;
+ import org.bukkit.entity.Entity;
+-import org.bukkit.entity.EntityType;
+-import org.bukkit.entity.Evoker;
+-import org.bukkit.entity.EvokerFangs;
+-import org.bukkit.entity.ExperienceOrb;
+-import org.bukkit.entity.FallingBlock;
+-import org.bukkit.entity.Fireball;
+-import org.bukkit.entity.Firework;
+-import org.bukkit.entity.Ghast;
+-import org.bukkit.entity.Giant;
+-import org.bukkit.entity.Golem;
+-import org.bukkit.entity.Guardian;
+-import org.bukkit.entity.Hanging;
+-import org.bukkit.entity.HumanEntity;
+-import org.bukkit.entity.Husk;
+-import org.bukkit.entity.Illager;
+-import org.bukkit.entity.Illusioner;
+-import org.bukkit.entity.IronGolem;
+-import org.bukkit.entity.ItemFrame;
+-import org.bukkit.entity.LeashHitch;
+-import org.bukkit.entity.LightningStrike;
+-import org.bukkit.entity.LingeringPotion;
+-import org.bukkit.entity.LivingEntity;
+-import org.bukkit.entity.Llama;
+-import org.bukkit.entity.LlamaSpit;
+-import org.bukkit.entity.MagmaCube;
+-import org.bukkit.entity.Minecart;
+-import org.bukkit.entity.Mule;
+-import org.bukkit.entity.MushroomCow;
+-import org.bukkit.entity.Ocelot;
+-import org.bukkit.entity.Painting;
+-import org.bukkit.entity.Parrot;
+-import org.bukkit.entity.Pig;
+-import org.bukkit.entity.PigZombie;
+-import org.bukkit.entity.Player;
+-import org.bukkit.entity.PolarBear;
+-import org.bukkit.entity.Projectile;
+-import org.bukkit.entity.Rabbit;
+-import org.bukkit.entity.Sheep;
+-import org.bukkit.entity.Shulker;
+-import org.bukkit.entity.ShulkerBullet;
+-import org.bukkit.entity.Silverfish;
+-import org.bukkit.entity.Skeleton;
+-import org.bukkit.entity.SkeletonHorse;
+-import org.bukkit.entity.Slime;
+-import org.bukkit.entity.SmallFireball;
+-import org.bukkit.entity.Snowball;
+-import org.bukkit.entity.Snowman;
+-import org.bukkit.entity.SpectralArrow;
+-import org.bukkit.entity.Spellcaster;
+-import org.bukkit.entity.Spider;
+-import org.bukkit.entity.Squid;
+-import org.bukkit.entity.Stray;
+-import org.bukkit.entity.TNTPrimed;
+-import org.bukkit.entity.Tameable;
+-import org.bukkit.entity.ThrownExpBottle;
+-import org.bukkit.entity.ThrownPotion;
+-import org.bukkit.entity.TippedArrow;
+-import org.bukkit.entity.Vex;
+-import org.bukkit.entity.Villager;
+-import org.bukkit.entity.Vindicator;
+-import org.bukkit.entity.Weather;
+-import org.bukkit.entity.Witch;
+-import org.bukkit.entity.Wither;
+-import org.bukkit.entity.WitherSkeleton;
+-import org.bukkit.entity.WitherSkull;
+-import org.bukkit.entity.Wolf;
+-import org.bukkit.entity.Zombie;
+-import org.bukkit.entity.ZombieHorse;
+-import org.bukkit.entity.ZombieVillager;
+ import org.bukkit.entity.minecart.CommandMinecart;
+ import org.bukkit.entity.minecart.ExplosiveMinecart;
+ import org.bukkit.entity.minecart.HopperMinecart;
+@@ -152,10 +61,6 @@ import org.bukkit.potion.PotionType;
+ import org.bukkit.util.Consumer;
+ import org.bukkit.util.Vector;
+ 
+-import com.google.common.base.Preconditions;
+-
+-import net.minecraft.server.*;
+-
+ public class CraftWorld implements World {
+     public static final int CUSTOM_DIMENSION_OFFSET = 10;
+ 
+@@ -233,11 +138,6 @@ public class CraftWorld implements World {
+         return this.world.getChunkProviderServer().getChunkAt(x, z).bukkitChunk;
+     }
+ 
+-    @Override
+-    public PlayerChunkMap getPlayerChunkMap() {
+-        return new CraftPlayerChunkMap(this.world.getPlayerChunkMap());
+-    }
+-
+     public Chunk getChunkAt(Block block) {
+         return getChunkAt(block.getX() >> 4, block.getZ() >> 4);
+     }
+-- 
+2.15.1
+

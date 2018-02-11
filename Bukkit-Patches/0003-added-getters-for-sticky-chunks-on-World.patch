@@ -1,0 +1,48 @@
+From b1ba94b2500be1b5b1fc08cebf723b6ddbc40fc3 Mon Sep 17 00:00:00 2001
+From: donaldduck70 <spigot@homemp3.dyndns.org>
+Date: Tue, 9 Jan 2018 21:42:33 +0100
+Subject: [PATCH] added getters for sticky chunks on World
+
+
+diff --git a/src/main/java/org/bukkit/World.java b/src/main/java/org/bukkit/World.java
+index c8344c6d..0165d4f9 100644
+--- a/src/main/java/org/bukkit/World.java
++++ b/src/main/java/org/bukkit/World.java
+@@ -151,6 +151,34 @@ public interface World extends PluginMessageRecipient, Metadatable {
+      */
+     public Chunk[] getLoadedChunks();
+ 
++    /**
++     * Checks if the specified {@link Chunk} is {@link Chunk#isSticky() sticky} in the
++     * player chunk map and hence will, e.g., continue to receive random block ticks
++     * when no player is near.
++     *
++     * @param chunk The chunk to check
++     * @return true if the chunk is sticky, otherwise false
++     */
++    public boolean isChunkSticky(Chunk chunk);
++
++    /**
++     * Gets an array of all {@link Chunk#isSticky() sticky} {@link Chunk}s
++     *
++     * @return Chunk[] containing all sticky chunks
++     */
++    public Chunk[] getStickyChunks();
++    
++    /**
++     * Checks if the specified {@link Chunk} is {@link Chunk#isSticky() sticky} in the
++     * player chunk map and hence will, e.g., continue to receive random block ticks
++     * when no player is near.
++     *
++     * @param x X-coordinate of the chunk
++     * @param z Z-coordinate of the chunk
++     * @return true if the chunk is sticky, otherwise false
++     */
++    public boolean isChunkSticky(int x, int z);
++
+     /**
+      * Loads the specified {@link Chunk}
+      *
+-- 
+2.15.1
+

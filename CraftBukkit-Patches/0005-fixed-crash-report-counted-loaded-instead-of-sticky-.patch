@@ -1,0 +1,22 @@
+From 3747868398c627f94a40287b657dd0bd0e62ae19 Mon Sep 17 00:00:00 2001
+From: donaldduck70 <spigot@homemp3.dyndns.org>
+Date: Tue, 9 Jan 2018 22:54:16 +0100
+Subject: [PATCH] fixed crash report (counted loaded instead of sticky chunks)
+
+
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftCrashReport.java b/src/main/java/org/bukkit/craftbukkit/CraftCrashReport.java
+index 67ce99ff..7134885d 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftCrashReport.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftCrashReport.java
+@@ -29,7 +29,7 @@ public class CraftCrashReport implements CrashReportCallable<Object> {
+             value.append("\n   Reload Count: ").append(String.valueOf(MinecraftServer.getServer().server.reloadCount));
+             value.append("\n   Sticky Chunks Count:\n");
+             for (final World world : Bukkit.getWorlds()) {
+-                value.append("     ").append(world.getName()).append(": ").append(Integer.toString(world.getLoadedChunks().length)).append("\n");
++                value.append("     ").append(world.getName()).append(": ").append(Integer.toString(world.getStickyChunks().length)).append("\n");
+             }
+             value.append("\n   Threads: {");
+             for (Map.Entry<Thread, ? extends Object[]> entry : Thread.getAllStackTraces().entrySet()) {
+-- 
+2.15.1
+

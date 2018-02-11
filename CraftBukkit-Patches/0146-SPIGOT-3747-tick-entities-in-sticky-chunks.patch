@@ -1,0 +1,35 @@
+From 6e2ae24bd396e3a49d70e3381f1cd2d79e70a8cc Mon Sep 17 00:00:00 2001
+From: Axel Uhl <axel.uhl@sap.com>
+Date: Sun, 11 Feb 2018 22:59:51 +0100
+Subject: [PATCH] SPIGOT-3747: tick entities in sticky chunks
+
+
+diff --git a/src/main/java/net/minecraft/server/World.java b/src/main/java/net/minecraft/server/World.java
+index 740633d9..ceca5760 100644
+--- a/src/main/java/net/minecraft/server/World.java
++++ b/src/main/java/net/minecraft/server/World.java
+@@ -1609,7 +1609,7 @@ public abstract class World implements IBlockAccess {
+         // TODO: Go back to Vanilla behaviour when comfortable
+         // Spigot start
+         // Chunk startingChunk = this.getChunkIfLoaded(MathHelper.floor(entity.locX) >> 4, MathHelper.floor(entity.locZ) >> 4);
+-        if (flag && !org.spigotmc.ActivationRange.checkIfActive(entity)) {
++        if (flag && !org.spigotmc.ActivationRange.checkIfActive(entity) && !getChunkAt(((int) entity.locX) >> 4, ((int) entity.locZ) >> 4).isSticky()) { // Spigot - if chunk sticky, entities shall be active in it
+             entity.ticksLived++;
+             entity.inactiveTick();
+             // Spigot end
+diff --git a/src/main/java/net/minecraft/server/WorldServer.java b/src/main/java/net/minecraft/server/WorldServer.java
+index d4f25cbf..7c296534 100644
+--- a/src/main/java/net/minecraft/server/WorldServer.java
++++ b/src/main/java/net/minecraft/server/WorldServer.java
+@@ -480,7 +480,7 @@ public class WorldServer extends World implements IAsyncTaskHandler {
+                 chunk.n();
+                 this.methodProfiler.c("tickChunk");
+                 chunk.b(false);
+-                if ( !chunk.areNeighborsLoaded( 1 ) ) continue; // Spigot
++                if ( !chunk.areNeighborsLoaded( 1 ) && !manager.getChunk(chunk.locX, chunk.locZ).chunk.isSticky()) continue; // CraftBukkit + Spigot
+                 this.methodProfiler.c("thunder");
+                 int l;
+                 BlockPosition blockposition;
+-- 
+2.15.1
+

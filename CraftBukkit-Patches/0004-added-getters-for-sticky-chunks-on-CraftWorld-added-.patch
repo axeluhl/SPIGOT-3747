@@ -1,0 +1,65 @@
+From e9e9d5c0eac3d409e5c76cf307f1be195eadd658 Mon Sep 17 00:00:00 2001
+From: donaldduck70 <spigot@homemp3.dyndns.org>
+Date: Tue, 9 Jan 2018 21:41:57 +0100
+Subject: [PATCH] added getters for sticky chunks on CraftWorld; added sticky
+ chunk counts to crash report
+
+
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftCrashReport.java b/src/main/java/org/bukkit/craftbukkit/CraftCrashReport.java
+index 67f28566..67ce99ff 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftCrashReport.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftCrashReport.java
+@@ -8,6 +8,7 @@ import java.util.concurrent.Callable;
+ import net.minecraft.server.CrashReportCallable;
+ 
+ import org.bukkit.Bukkit;
++import org.bukkit.World;
+ import org.bukkit.plugin.Plugin;
+ import org.bukkit.plugin.PluginDescriptionFile;
+ 
+@@ -26,6 +27,10 @@ public class CraftCrashReport implements CrashReportCallable<Object> {
+             }
+             value.append("}\n   Warnings: ").append(Bukkit.getWarningState().name());
+             value.append("\n   Reload Count: ").append(String.valueOf(MinecraftServer.getServer().server.reloadCount));
++            value.append("\n   Sticky Chunks Count:\n");
++            for (final World world : Bukkit.getWorlds()) {
++                value.append("     ").append(world.getName()).append(": ").append(Integer.toString(world.getLoadedChunks().length)).append("\n");
++            }
+             value.append("\n   Threads: {");
+             for (Map.Entry<Thread, ? extends Object[]> entry : Thread.getAllStackTraces().entrySet()) {
+                 value.append(' ').append(entry.getKey().getState().name()).append(' ').append(entry.getKey().getName()).append(": ").append(Arrays.toString(entry.getValue())).append(',');
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
+index 8f6653f7..cdab782b 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
+@@ -275,6 +275,27 @@ public class CraftWorld implements World {
+         return isChunkLoaded(chunk.getX(), chunk.getZ());
+     }
+ 
++    @Override
++    public Chunk[] getStickyChunks() {
++        final Set<Chunk> stickyChunks = new HashSet<>();
++        for (final Chunk loadedChunk : getLoadedChunks()) {
++            if (loadedChunk.isSticky()) {
++                stickyChunks.add(loadedChunk);
++            }
++        }
++        return stickyChunks.toArray(new Chunk[stickyChunks.size()]);
++    }
++
++    @Override
++    public boolean isChunkSticky(Chunk chunk) {
++        return isChunkSticky(chunk.getX(), chunk.getZ());
++    }
++
++    @Override
++    public boolean isChunkSticky(int x, int z) {
++        return isChunkLoaded(x, z) && getChunkAt(x, z).isSticky();
++    }
++
+     public void loadChunk(Chunk chunk) {
+         loadChunk(chunk.getX(), chunk.getZ());
+         ((CraftChunk) getChunkAt(chunk.getX(), chunk.getZ())).getHandle().bukkitChunk = chunk;
+-- 
+2.15.1
+

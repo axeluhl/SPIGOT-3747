@@ -1,0 +1,93 @@
+From 37dff9aed4d6b72e545330ea126627c346e5d371 Mon Sep 17 00:00:00 2001
+From: donaldduck70 <spigot@homemp3.dyndns.org>
+Date: Tue, 9 Jan 2018 15:57:24 +0100
+Subject: [PATCH] removed PlayerChunk and PlayerChunkMap again
+
+
+diff --git a/src/main/java/org/bukkit/Chunk.java b/src/main/java/org/bukkit/Chunk.java
+index 079b9feb..d3bca8c0 100644
+--- a/src/main/java/org/bukkit/Chunk.java
++++ b/src/main/java/org/bukkit/Chunk.java
+@@ -130,4 +130,18 @@ public interface Chunk {
+      * @return true if slimes are able to spawn in this chunk
+      */
+     boolean isSlimeChunk();
++
++    /**
++     * With {@code sticky==true} force-loads the chunk at the chunk coordinates specified into the player chunks and
++     * marks the resulting chunk as sticky in the player chunk map. Useful for plugins that would like to force chunk
++     * ticks even in case they are not loaded yet, e.g., during plugin start-up. With {@code sticky==false} the chunk is
++     * marked as no longer being sticky in the player chunk map, and if no player is currently seeing this chunk then
++     * the chunk is removed from the player chunk map.
++     */
++    void setSticky(boolean sticky);
++    
++    /**
++     * @return {@code true} whether this player chunk will remain loaded even if it has no player associated anymore
++     */
++    boolean isSticky();
+ }
+diff --git a/src/main/java/org/bukkit/PlayerChunk.java b/src/main/java/org/bukkit/PlayerChunk.java
+deleted file mode 100755
+index f326119f..00000000
+--- a/src/main/java/org/bukkit/PlayerChunk.java
++++ /dev/null
+@@ -1,18 +0,0 @@
+-package org.bukkit;
+-
+-public interface PlayerChunk {
+-
+-    /**
+-     * @return {@code true} whether this player chunk will remain loaded even if it has no player associated anymore
+-     */
+-    boolean isSticky();
+-
+-    /**
+-     * Forces this player chunk to remain in its {@link #playerChunkMap} even if it contains no player entities anymore,
+-     * or releases the chunk if {@code sticky} is {@code false}.
+-     */
+-    void setSticky(boolean sticky);
+-
+-    Chunk getChunk();
+-
+-}
+diff --git a/src/main/java/org/bukkit/PlayerChunkMap.java b/src/main/java/org/bukkit/PlayerChunkMap.java
+deleted file mode 100755
+index 121679f4..00000000
+--- a/src/main/java/org/bukkit/PlayerChunkMap.java
++++ /dev/null
+@@ -1,13 +0,0 @@
+-package org.bukkit;
+-
+-public interface PlayerChunkMap {
+-
+-    PlayerChunk getPlayerChunk(int x, int z);
+-
+-    /**
+-     * Force-loads the chunk at the chunk coordinates specified and marks the resulting {@link PlayerChunk} with
+-     * {@link PlayerChunk#setSticky(boolean)}. Useful for plugins that would like to force chunk ticks even in
+-     * case they are not loaded yet, e.g., during plugin start-up.
+-     */
+-    void keepPlayerChunkTicking(int x, int z);
+-}
+diff --git a/src/main/java/org/bukkit/World.java b/src/main/java/org/bukkit/World.java
+index 1373e0af..c8344c6d 100644
+--- a/src/main/java/org/bukkit/World.java
++++ b/src/main/java/org/bukkit/World.java
+@@ -1470,13 +1470,6 @@ public interface World extends PluginMessageRecipient, Metadatable {
+      */
+     public <T> void spawnParticle(Particle particle, double x, double y, double z, int count, double offsetX, double offsetY, double offsetZ, double extra, T data);
+ 
+-    /**
+-     * Gets the player chunk map from this world
+-     * 
+-     * @return the player chunk map from this world
+-     */
+-    PlayerChunkMap getPlayerChunkMap();
+-
+ 
+     /**
+      * Represents various map environment types that a world may be
+-- 
+2.15.1
+

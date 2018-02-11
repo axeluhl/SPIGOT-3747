@@ -1,0 +1,26 @@
+From 6873c600490c4356b55c345ccdde2326c30ea275 Mon Sep 17 00:00:00 2001
+From: donaldduck70 <spigot@homemp3.dyndns.org>
+Date: Tue, 9 Jan 2018 23:57:14 +0100
+Subject: [PATCH] removed CraftWorld.isChunkSticky(Chunk) because
+ Chunk.isSticky() is as convenient
+
+
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
+index cdab782b..eabd2aac 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
+@@ -286,11 +286,6 @@ public class CraftWorld implements World {
+         return stickyChunks.toArray(new Chunk[stickyChunks.size()]);
+     }
+ 
+-    @Override
+-    public boolean isChunkSticky(Chunk chunk) {
+-        return isChunkSticky(chunk.getX(), chunk.getZ());
+-    }
+-
+     @Override
+     public boolean isChunkSticky(int x, int z) {
+         return isChunkLoaded(x, z) && getChunkAt(x, z).isSticky();
+-- 
+2.15.1
+
