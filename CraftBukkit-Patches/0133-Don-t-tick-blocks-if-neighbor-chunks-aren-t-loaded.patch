@@ -12,7 +12,9 @@ index 8b8c6c28a..d4f25cbf2 100644
                  chunk.n();
                  this.methodProfiler.c("tickChunk");
                  chunk.b(false);
-+                if ( !chunk.areNeighborsLoaded( 1 ) ) continue; // Spigot
+-                if ( !manager.getChunk(chunk.locX, chunk.locZ).chunk.isSticky()) continue; // CraftBukkit
++                if ( !chunk.areNeighborsLoaded( 1 ) && !manager.getChunk(chunk.locX, chunk.locZ).chunk.isSticky()) continue; // CraftBukkit + Spigot
+
                  this.methodProfiler.c("thunder");
                  int l;
                  BlockPosition blockposition;
