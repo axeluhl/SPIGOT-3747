@@ -1,0 +1,22 @@
+From 1cf34883bb3ff924b9854c7511efdbe44ad3ade5 Mon Sep 17 00:00:00 2001
+From: Axel Uhl <axel.uhl@sap.com>
+Date: Mon, 12 Feb 2018 00:33:39 +0100
+Subject: [PATCH] keep ticking sticky chunks
+
+
+diff --git a/src/main/java/net/minecraft/server/World.java b/src/main/java/net/minecraft/server/World.java
+index 740633d9..ceca5760 100644
+--- a/src/main/java/net/minecraft/server/World.java
++++ b/src/main/java/net/minecraft/server/World.java
+@@ -1609,7 +1609,7 @@ public abstract class World implements IBlockAccess {
+         // TODO: Go back to Vanilla behaviour when comfortable
+         // Spigot start
+         // Chunk startingChunk = this.getChunkIfLoaded(MathHelper.floor(entity.locX) >> 4, MathHelper.floor(entity.locZ) >> 4);
+-        if (flag && !org.spigotmc.ActivationRange.checkIfActive(entity)) {
++        if (flag && !org.spigotmc.ActivationRange.checkIfActive(entity) && !getChunkAt(((int) entity.locX) >> 4, ((int) entity.locZ) >> 4).isSticky()) { // Spigot - if chunk sticky, entities shall be active in it
+             entity.ticksLived++;
+             entity.inactiveTick();
+             // Spigot end
+-- 
+2.15.1
+
