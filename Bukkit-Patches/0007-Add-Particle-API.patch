@@ -1,4 +1,4 @@
-From 187311b072556ae501fdaffefe0417a76ed9f73a Mon Sep 17 00:00:00 2001
+From 8240bd1a8e59015cb19a1cd1ab8dd56aa5f78891 Mon Sep 17 00:00:00 2001
 From: md_5 <md_5@live.com.au>
 Date: Sun, 2 Jun 2013 15:57:09 +1000
 Subject: [PATCH] Add Particle API
@@ -344,10 +344,10 @@ index 21f7db58..eeb25812 100644
 +    public enum Type {SOUND, VISUAL, PARTICLE}
  }
 diff --git a/src/main/java/org/bukkit/World.java b/src/main/java/org/bukkit/World.java
-index 2d4174c9..90159bcc 100644
+index 41c055cf..87a21a60 100644
 --- a/src/main/java/org/bukkit/World.java
 +++ b/src/main/java/org/bukkit/World.java
-@@ -1474,6 +1474,51 @@ public interface World extends PluginMessageRecipient, Metadatable {
+@@ -1492,6 +1492,51 @@ public interface World extends PluginMessageRecipient, Metadatable {
      public class Spigot
      {
  
@@ -434,5 +434,5 @@ index 08aa71d3..5217aecb 100644
      }
  }
 -- 
-2.14.1
+2.15.1
 
