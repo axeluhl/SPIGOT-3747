@@ -1,14 +1,14 @@
-From 49da85e6d1fd7d4e264757c8e4984207837c58de Mon Sep 17 00:00:00 2001
+From 78c603b5e9ed2b5b33311262ad7af6f9c6879279 Mon Sep 17 00:00:00 2001
 From: md_5 <md_5@live.com.au>
 Date: Sat, 22 Jun 2013 16:12:02 +1000
 Subject: [PATCH] Allow Disabling of Random Lighting Updates
 
 
 diff --git a/src/main/java/net/minecraft/server/Chunk.java b/src/main/java/net/minecraft/server/Chunk.java
-index 04183588b..fe511bfdf 100644
+index b1f88ad5..38d08292 100644
 --- a/src/main/java/net/minecraft/server/Chunk.java
 +++ b/src/main/java/net/minecraft/server/Chunk.java
-@@ -1001,7 +1001,7 @@ public class Chunk {
+@@ -1002,7 +1002,7 @@ public class Chunk {
          }
  
          this.r = true;
@@ -18,7 +18,7 @@ index 04183588b..fe511bfdf 100644
          }
  
 diff --git a/src/main/java/net/minecraft/server/WorldServer.java b/src/main/java/net/minecraft/server/WorldServer.java
-index 1e07fb296..4ea536637 100644
+index 1e07fb29..4ea53663 100644
 --- a/src/main/java/net/minecraft/server/WorldServer.java
 +++ b/src/main/java/net/minecraft/server/WorldServer.java
 @@ -441,7 +441,7 @@ public class WorldServer extends World implements IAsyncTaskHandler {
@@ -31,7 +31,7 @@ index 1e07fb296..4ea536637 100644
              EntityHuman entityhuman = (EntityHuman) this.players.get(i);
              int j = MathHelper.floor(entityhuman.locX) + this.random.nextInt(11) - 5;
 diff --git a/src/main/java/org/spigotmc/SpigotWorldConfig.java b/src/main/java/org/spigotmc/SpigotWorldConfig.java
-index 2847bbf3d..0202eeb8d 100644
+index 2847bbf3..0202eeb8 100644
 --- a/src/main/java/org/spigotmc/SpigotWorldConfig.java
 +++ b/src/main/java/org/spigotmc/SpigotWorldConfig.java
 @@ -182,4 +182,11 @@ public class SpigotWorldConfig
@@ -47,5 +47,5 @@ index 2847bbf3d..0202eeb8d 100644
 +    }
  }
 -- 
-2.14.1
+2.15.1
 

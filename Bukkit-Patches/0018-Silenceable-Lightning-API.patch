@@ -1,14 +1,14 @@
-From 5959a8cde32928d463ccf1d1a01f7ec4239de14c Mon Sep 17 00:00:00 2001
+From 5f2c431b34cafe2611f52af96f39ef815eca6631 Mon Sep 17 00:00:00 2001
 From: drXor <mcyoungsota@gmail.com>
 Date: Sun, 23 Feb 2014 16:16:29 -0400
 Subject: [PATCH] Silenceable Lightning API
 
 
 diff --git a/src/main/java/org/bukkit/World.java b/src/main/java/org/bukkit/World.java
-index 90159bcc..9b6eb48f 100644
+index 87a21a60..1204edfb 100644
 --- a/src/main/java/org/bukkit/World.java
 +++ b/src/main/java/org/bukkit/World.java
-@@ -1519,6 +1519,30 @@ public interface World extends PluginMessageRecipient, Metadatable {
+@@ -1537,6 +1537,30 @@ public interface World extends PluginMessageRecipient, Metadatable {
          {
              throw new UnsupportedOperationException( "Not supported yet." );
          }
@@ -60,5 +60,5 @@ index ee2218c1..aa809392 100644
  
      @Override
 -- 
-2.14.1
+2.15.1
 
